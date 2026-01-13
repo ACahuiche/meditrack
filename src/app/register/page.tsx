@@ -227,7 +227,7 @@ export default function RegisterPage() {
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
             Create an Account
-          </Ttle>
+          </CardTitle>
           <CardDescription>
             Enter your details below to get started.
           </CardDescription>
