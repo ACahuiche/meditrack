@@ -61,6 +61,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const checkRegistrationStatus = async () => {
+      if (!firestore) return;
       try {
         const configDocRef = doc(firestore, 'globalSettings', 'config');
         const configDoc = await getDoc(configDocRef);
@@ -226,7 +227,7 @@ export default function RegisterPage() {
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
             Create an Account
-          </CardTitle>
+          </Ttle>
           <CardDescription>
             Enter your details below to get started.
           </CardDescription>
