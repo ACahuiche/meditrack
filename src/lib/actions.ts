@@ -6,9 +6,7 @@ import {
   generateMedicationDescription,
   type MedicationDescriptionInput,
 } from '@/ai/flows/medication-description-generator';
-import { doc } from 'firebase/firestore';
 import { getSdks } from '@/firebase/server-actions';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Dose, Medication } from './types';
 import * as z from 'zod';
 
@@ -19,7 +17,7 @@ const formSchema = z.object({
   durationDays: z.coerce.number().min(1),
   initialDoseDate: z.date(),
   initialDoseTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  userId: z.string(), // Added userId to associate medication with a user
+  userId: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -48,6 +46,7 @@ export async function addMedication(values: FormValues) {
   const validation = formSchema.safeParse(values);
 
   if (!validation.success) {
+    console.error('Validation failed:', validation.error);
     return { error: 'Invalid data provided.' };
   }
 
@@ -88,36 +87,39 @@ export async function addMedication(values: FormValues) {
 
     revalidatePath('/');
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to add medication:', error);
-    return { error: 'Failed to add medication.' };
+    return { error: error.message || 'Failed to add medication.' };
   }
 }
 
 export async function updateDoseState(
   userId: string,
   medicationId: string,
-  doses: Dose[],
   doseId: string,
   taken: boolean
 ) {
   try {
     const { firestore } = await getSdks();
-    const docRef = doc(firestore, `users/${userId}/medications`, medicationId);
+    const medicationRef = firestore.doc(`users/${userId}/medications/${medicationId}`);
+    const medicationDoc = await medicationRef.get();
 
-    const newDoses = doses.map((dose) =>
+    if (!medicationDoc.exists) {
+      throw new Error('Medication not found.');
+    }
+
+    const medicationData = medicationDoc.data() as Medication;
+    const newDoses = medicationData.doses.map((dose) =>
       dose.id === doseId ? { ...dose, taken } : dose
     );
 
-    // This is a client-side function, but we are in a server action.
-    // We should use the admin SDK to update the document.
-    await firestore.doc(`users/${userId}/medications/${medicationId}`).update({ doses: newDoses });
-
+    await medicationRef.update({ doses: newDoses });
 
     revalidatePath('/');
-  } catch (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error('Failed to update dose state:', error);
-    // In a real app, you might want to return an error object
+    return { error: error.message || 'Failed to update dose state.' };
   }
 }
 

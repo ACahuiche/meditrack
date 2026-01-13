@@ -14,14 +14,19 @@ import { useUser } from '@/firebase';
 
 type GroupedDoses = { [key: string]: Dose[] };
 
-function DoseCheckbox({ medicationId, doses, dose }: { medicationId: string, doses: Dose[], dose: Dose }) {
+function DoseCheckbox({ medicationId, dose, onDoseChange }: { medicationId: string, dose: Dose, onDoseChange: (doseId: string, taken: boolean) => void }) {
     const { user } = useUser();
     const [isPending, startTransition] = useTransition();
 
     const handleCheckedChange = async (checked: boolean) => {
         if (!user) return;
+        const newTakenState = !!checked;
+        
+        // Optimistic update
+        onDoseChange(dose.id, newTakenState);
+
         startTransition(() => {
-            updateDoseState(user.uid, medicationId, doses, dose.id, !!checked);
+            updateDoseState(user.uid, medicationId, dose.id, newTakenState);
         });
     };
 
@@ -93,8 +98,8 @@ export function DosageSchedule({ medication }: { medication: Medication }) {
                                     >
                                         <DoseCheckbox
                                             medicationId={medication.id}
-                                            doses={optimisticDoses}
                                             dose={dose}
+                                            onDoseChange={handleDoseChange}
                                         />
                                         <Label
                                             htmlFor={dose.id}
