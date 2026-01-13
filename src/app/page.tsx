@@ -14,6 +14,22 @@ import { useAuth, useFirebase } from '@/firebase/provider';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
+// Función de ayuda para formatear la fecha como una cadena ISO local
+const formatDateToLocalISO = (date: Date): string => {
+  const pad = (num: number) => num.toString().padStart(2, '0');
+  
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  const milliseconds = date.getMilliseconds().toString().padStart(3, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+};
+
+
 export default function Home() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [history, setHistory] =useState<HistoricalMedication[]>([]);
@@ -83,7 +99,7 @@ export default function Home() {
       const doseTime = addHours(startDate, i * frequencyHours);
       doses.push({
         id: crypto.randomUUID(),
-        time: doseTime.toISOString(),
+        time: formatDateToLocalISO(doseTime),
         taken: false,
       });
     }
@@ -115,9 +131,9 @@ export default function Home() {
       description: description || '',
       dosageFrequencyHours,
       durationDays,
-      initialDoseTimestamp: startDate.toISOString(),
+      initialDoseTimestamp: formatDateToLocalISO(startDate),
       doses,
-      createdAt: new Date().toISOString(),
+      createdAt: formatDateToLocalISO(new Date()),
     };
 
     try {
@@ -150,8 +166,8 @@ export default function Home() {
         dosageFrequencyHours: medication.dosageFrequencyHours,
         totalDoses: medication.doses.length,
         startDate: medication.initialDoseTimestamp,
-        endDate: addDays(new Date(medication.initialDoseTimestamp), medication.durationDays).toISOString(),
-        completedAt: new Date().toISOString()
+        endDate: formatDateToLocalISO(addDays(new Date(medication.initialDoseTimestamp), medication.durationDays)),
+        completedAt: formatDateToLocalISO(new Date())
       };
       
       try {
