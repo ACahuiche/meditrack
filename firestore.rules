@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Allow public read for global configuration, but block all writes.
+    // This lets the registration page check if sign-ups are enabled.
+    match /globalSettings/config {
+      allow get: if true;
+      allow list, create, update, delete: if false;
+    }
+
+    // By default, deny all other reads and writes to all other documents.
+    // This is a secure default. We will add more rules later for user data.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
