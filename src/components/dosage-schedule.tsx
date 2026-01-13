@@ -46,7 +46,6 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
     };
 
     const groupedDoses = optimisticDoses.reduce<GroupedDoses>((acc, dose) => {
-        // Parse the ISO string to a Date object before formatting
         const doseDate = parseISO(dose.time);
         const dateKey = format(doseDate, "yyyy-MM-dd");
         if (!acc[dateKey]) {
@@ -64,8 +63,7 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
                 const dosesForDay = groupedDoses[dateKey];
                 const allTaken = dosesForDay.every(d => d.taken);
                 
-                // When creating the Date for formatting, add timezone info to avoid UTC conversion
-                const displayDate = new Date(`${dateKey}T00:00:00`);
+                const displayDate = parseISO(dosesForDay[0].time);
 
                 return (
                     <Card key={dateKey} className={cn(allTaken && "bg-accent/50 border-accent")}>
@@ -88,7 +86,6 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
                         <CardContent className="p-4 pt-0">
                             <div className="space-y-2">
                                 {dosesForDay.map((dose) => {
-                                    // Parse ISO string to ensure correct time is formatted
                                     const doseTime = parseISO(dose.time);
                                     return (
                                         <div

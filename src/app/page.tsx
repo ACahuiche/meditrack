@@ -104,7 +104,6 @@ export default function Home() {
 
     const [hours, minutes] = initialDoseTime.split(':').map(Number);
     
-    // Construct date in local time zone
     const startDate = new Date(initialDoseDate);
     startDate.setHours(hours, minutes, 0, 0);
 
