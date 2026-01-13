@@ -1,3 +1,4 @@
+
 export type Dose = {
   id: string;
   time: string; // ISO string
@@ -6,6 +7,7 @@ export type Dose = {
 
 export type Medication = {
   id: string;
+  userId: string;
   name: string;
   description: string;
   dosageFrequencyHours: number;
@@ -17,6 +19,7 @@ export type Medication = {
 
 export type HistoricalMedication = {
     id: string;
+    userId: string;
     name: string;
     description: string;
     dosageFrequencyHours: number;

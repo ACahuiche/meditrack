@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,7 +14,7 @@ import { LogOut, User as UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type HeaderProps = {
-    onAddMedication: (values: Omit<Medication, 'id' | 'doses' | 'createdAt' | 'initialDoseTimestamp'> & { initialDoseDate: Date; initialDoseTime: string }) => void;
+    onAddMedication: (values: Omit<Medication, 'id' | 'doses' | 'createdAt' | 'initialDoseTimestamp' | 'userId'> & { initialDoseDate: Date; initialDoseTime: string }) => void;
 };
 
 export function Header({ onAddMedication }: HeaderProps) {

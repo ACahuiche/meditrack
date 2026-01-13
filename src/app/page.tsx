@@ -1,6 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
 import { Header } from '@/components/header';
 import { MedicationList } from '@/components/medication-list';
 import type { Medication, Dose, HistoricalMedication } from '@/lib/types';
@@ -8,57 +10,65 @@ import { Loader2 } from 'lucide-react';
 import { addHours, addDays } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HistoricalMedicationList } from '@/components/historical-medication-list';
-import { useAuth } from '@/firebase/provider';
+import { useAuth, useFirebase } from '@/firebase/provider';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const [medications, setMedications] = useState<Medication[]>([]);
-  const [history, setHistory] = useState<HistoricalMedication[]>([]);
+  const [history, setHistory] =useState<HistoricalMedication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const { user, loading: authLoading } = useAuth();
+  const { firestore } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     }
   }, [user, authLoading, router]);
 
-
-  // Load data from localStorage
   useEffect(() => {
-    try {
-      const storedMedications = localStorage.getItem('medications');
-      if (storedMedications) {
-        setMedications(JSON.parse(storedMedications));
-      }
-      const storedHistory = localStorage.getItem('medicationHistory');
-      if (storedHistory) {
-        setHistory(JSON.parse(storedHistory));
-      }
-    } catch (error) {
-      console.error("Failed to parse data from localStorage", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    if (user && firestore) {
+      setIsLoading(true);
 
-  // Save medications to localStorage
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem('medications', JSON.stringify(medications));
-    }
-  }, [medications, isLoading]);
+      const medQuery = query(
+        collection(firestore, 'users', user.uid, 'medications'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const unsubscribeMeds = onSnapshot(medQuery, (snapshot) => {
+        const meds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Medication));
+        setMedications(meds);
+        setIsLoading(false);
+      }, (error) => {
+        console.error("Error fetching medications:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not fetch medications." });
+        setIsLoading(false);
+      });
 
-  // Save history to localStorage
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem('medicationHistory', JSON.stringify(history));
-    }
-  }, [history, isLoading]);
+      const historyQuery = query(
+        collection(firestore, 'users', user.uid, 'history'),
+        orderBy('completedAt', 'desc')
+      );
 
+      const unsubscribeHistory = onSnapshot(historyQuery, (snapshot) => {
+        const hist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HistoricalMedication));
+        setHistory(hist);
+      }, (error) => {
+        console.error("Error fetching history:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not fetch medication history." });
+      });
+
+
+      return () => {
+        unsubscribeMeds();
+        unsubscribeHistory();
+      };
+    }
+  }, [user, firestore, toast]);
 
   const generateDoseSchedule = (
     startDate: Date,
@@ -80,7 +90,9 @@ export default function Home() {
     return doses;
   };
 
-  const handleAddMedication = useCallback((values: Omit<Medication, 'id' | 'doses' | 'createdAt' | 'initialDoseTimestamp'> & { initialDoseDate: Date; initialDoseTime: string }) => {
+  const handleAddMedication = useCallback(async (values: Omit<Medication, 'id' | 'doses' | 'createdAt' | 'initialDoseTimestamp' | 'userId'> & { initialDoseDate: Date; initialDoseTime: string }) => {
+    if (!user || !firestore) return;
+
     const {
       name,
       description,
@@ -96,8 +108,8 @@ export default function Home() {
 
     const doses = generateDoseSchedule(startDate, dosageFrequencyHours, durationDays);
 
-    const newMedication: Medication = {
-      id: crypto.randomUUID(),
+    const newMedication: Omit<Medication, 'id'> = {
+      userId: user.uid,
       name,
       description: description || '',
       dosageFrequencyHours,
@@ -107,48 +119,57 @@ export default function Home() {
       createdAt: new Date().toISOString(),
     };
 
-    setMedications(prevMeds => [newMedication, ...prevMeds].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-  }, []);
+    try {
+      const medRef = collection(firestore, 'users', user.uid, 'medications');
+      await addDoc(medRef, newMedication);
+    } catch (error) {
+      console.error("Error adding medication:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not save medication." });
+    }
+  }, [user, firestore, toast]);
 
-  const handleUpdateDose = useCallback((medicationId: string, doseId: string, taken: boolean) => {
-    let completedMed: Medication | undefined;
+  const handleUpdateDose = useCallback(async (medicationId: string, doseId: string, taken: boolean) => {
+    if (!user || !firestore) return;
 
-    setMedications(prevMeds =>
-      prevMeds.map(med => {
-        if (med.id === medicationId) {
-          const updatedDoses = med.doses.map(dose =>
-            dose.id === doseId ? { ...dose, taken } : dose
-          );
-          
-          const isComplete = updatedDoses.every(d => d.taken);
-          if (isComplete) {
-            completedMed = { ...med, doses: updatedDoses };
-            return med; // We will filter it out later
-          }
+    const medication = medications.find(m => m.id === medicationId);
+    if (!medication) return;
 
-          return {
-            ...med,
-            doses: updatedDoses,
-          };
-        }
-        return med;
-      }).filter(med => !completedMed || med.id !== completedMed.id)
+    const updatedDoses = medication.doses.map(dose =>
+      dose.id === doseId ? { ...dose, taken } : dose
     );
 
-    if (completedMed) {
-      const historicalEntry: HistoricalMedication = {
-        id: completedMed.id,
-        name: completedMed.name,
-        description: completedMed.description,
-        dosageFrequencyHours: completedMed.dosageFrequencyHours,
-        totalDoses: completedMed.doses.length,
-        startDate: completedMed.initialDoseTimestamp,
-        endDate: addDays(new Date(completedMed.initialDoseTimestamp), completedMed.durationDays).toISOString(),
+    const isComplete = updatedDoses.every(d => d.taken);
+    const medDocRef = doc(firestore, 'users', user.uid, 'medications', medicationId);
+
+    if (isComplete) {
+       const historicalEntry: Omit<HistoricalMedication, 'id'> = {
+        userId: user.uid,
+        name: medication.name,
+        description: medication.description,
+        dosageFrequencyHours: medication.dosageFrequencyHours,
+        totalDoses: medication.doses.length,
+        startDate: medication.initialDoseTimestamp,
+        endDate: addDays(new Date(medication.initialDoseTimestamp), medication.durationDays).toISOString(),
         completedAt: new Date().toISOString()
       };
-      setHistory(prevHistory => [historicalEntry, ...prevHistory].sort((a,b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()));
+      
+      try {
+        await addDoc(collection(firestore, 'users', user.uid, 'history'), historicalEntry);
+        await deleteDoc(medDocRef);
+      } catch (error) {
+        console.error("Error archiving medication:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not archive medication." });
+      }
+
+    } else {
+      try {
+        await updateDoc(medDocRef, { doses: updatedDoses });
+      } catch (error) {
+        console.error("Error updating dose:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not update dose status." });
+      }
     }
-  }, []);
+  }, [user, firestore, medications, toast]);
 
   if (authLoading || isLoading || !user) {
     return (
