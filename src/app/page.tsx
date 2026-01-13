@@ -1,18 +1,26 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Header } from '@/components/header';
 import { MedicationList } from '@/components/medication-list';
 import type { Medication } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal, Loader2 } from 'lucide-react';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { Login } from '@/components/login';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from '@/firebase';
+import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const auth = useAuth();
+
+  useEffect(() => {
+    if (!user && !isUserLoading) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [user, isUserLoading, auth]);
 
   const medicationsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -21,7 +29,7 @@ export default function Home() {
 
   const { data: medications, isLoading, error } = useCollection<Medication>(medicationsQuery);
 
-  if (isUserLoading || (user && isLoading)) {
+  if (isUserLoading || !user || isLoading) {
     return (
       <div className="flex min-h-screen w-full flex-col">
         <Header />
@@ -31,10 +39,6 @@ export default function Home() {
         </main>
       </div>
     );
-  }
-
-  if (!user) {
-    return <Login />;
   }
 
   return (
