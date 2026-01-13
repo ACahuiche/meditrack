@@ -6,12 +6,9 @@ import {
   generateMedicationDescription,
   type MedicationDescriptionInput,
 } from '@/ai/flows/medication-description-generator';
-import {
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase/non-blocking-updates';
-import { collection, doc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { getSdks } from '@/firebase/server-actions';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Dose, Medication } from './types';
 import * as z from 'zod';
 
@@ -92,7 +89,7 @@ export async function addMedication(values: FormValues) {
     revalidatePath('/');
     return { success: true };
   } catch (error) {
-    console.error(error);
+    console.error('Failed to add medication:', error);
     return { error: 'Failed to add medication.' };
   }
 }
@@ -112,7 +109,10 @@ export async function updateDoseState(
       dose.id === doseId ? { ...dose, taken } : dose
     );
 
-    updateDocumentNonBlocking(docRef, { doses: newDoses });
+    // This is a client-side function, but we are in a server action.
+    // We should use the admin SDK to update the document.
+    await firestore.doc(`users/${userId}/medications/${medicationId}`).update({ doses: newDoses });
+
 
     revalidatePath('/');
   } catch (error) {

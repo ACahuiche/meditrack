@@ -72,11 +72,11 @@ export function AddMedicationForm({
       const result = await addMedication({ ...values, userId: user.uid });
       if (result.error) {
         toast({
-          title: 'Error',
+          title: 'Error adding medication',
           description: result.error,
           variant: 'destructive',
         });
-      } else {
+      } else if (result.success){
         toast({
           title: 'Success!',
           description: `Medication "${values.name}" has been added.`,
