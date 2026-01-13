@@ -62,28 +62,33 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const checkRegistrationStatus = async () => {
+      setCheckingStatus(true);
       if (!firestore) {
+        // If firestore is not available for some reason, default to allowing registration.
+        setIsRegisterAvailable(true);
         setCheckingStatus(false);
-        setIsRegisterAvailable(true); // Default to true if firestore is not available
         return;
       }
       try {
         const configDocRef = doc(firestore, 'globalSettings', 'config');
         const configDoc = await getDoc(configDocRef);
+        
         if (configDoc.exists() && configDoc.data().isRegisterAvailable === false) {
+          // If the doc exists and registration is explicitly set to false
           setIsRegisterAvailable(false);
         } else {
+          // In all other cases (doc doesn't exist, field doesn't exist, field is true), allow registration
           setIsRegisterAvailable(true);
         }
       } catch (error) {
         console.error("Error checking registration status:", error);
+        // If there is a permissions error, we can't check the status, so we disable registration.
+        setIsRegisterAvailable(false);
         toast({
           title: 'Error de permisos',
           description: 'No se pudo verificar el estado del registro. Contacta al administrador.',
           variant: 'destructive',
         });
-        // If we can't read the doc, we assume registration is closed for security.
-        setIsRegisterAvailable(false);
       } finally {
         setCheckingStatus(false);
       }
