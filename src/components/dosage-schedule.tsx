@@ -2,7 +2,7 @@
 
 import { useOptimistic, useTransition } from 'react';
 import type { Dose, Medication } from '@/lib/types';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -46,7 +46,9 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
     };
 
     const groupedDoses = optimisticDoses.reduce<GroupedDoses>((acc, dose) => {
-        const dateKey = format(new Date(dose.time), "yyyy-MM-dd");
+        // Parse the ISO string to a Date object before formatting
+        const doseDate = parseISO(dose.time);
+        const dateKey = format(doseDate, "yyyy-MM-dd");
         if (!acc[dateKey]) {
             acc[dateKey] = [];
         }
@@ -61,11 +63,15 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
             {sortedDays.map((dateKey) => {
                 const dosesForDay = groupedDoses[dateKey];
                 const allTaken = dosesForDay.every(d => d.taken);
+                
+                // When creating the Date for formatting, add timezone info to avoid UTC conversion
+                const displayDate = new Date(`${dateKey}T00:00:00`);
+
                 return (
                     <Card key={dateKey} className={cn(allTaken && "bg-accent/50 border-accent")}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
                             <CardTitle className="text-base font-medium capitalize">
-                                {format(new Date(dateKey), "eeee, d 'de' MMMM", { locale: es })}
+                                {format(displayDate, "eeee, d 'de' MMMM", { locale: es })}
                             </CardTitle>
                             {allTaken ? (
                                 <Badge variant="outline" className="bg-accent text-accent-foreground border-accent-foreground/50">
@@ -81,27 +87,31 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
                         </CardHeader>
                         <CardContent className="p-4 pt-0">
                             <div className="space-y-2">
-                                {dosesForDay.map((dose) => (
-                                    <div
-                                        key={dose.id}
-                                        className={cn(
-                                            "flex items-center space-x-3 rounded-md p-2 transition-colors",
-                                            dose.taken && "bg-accent text-accent-foreground"
-                                        )}
-                                    >
-                                        <DoseCheckbox
-                                            medicationId={medication.id}
-                                            dose={dose}
-                                            onDoseChange={handleDoseChange}
-                                        />
-                                        <Label
-                                            htmlFor={dose.id}
-                                            className={cn("text-lg font-mono", dose.taken && "line-through opacity-70")}
+                                {dosesForDay.map((dose) => {
+                                    // Parse ISO string to ensure correct time is formatted
+                                    const doseTime = parseISO(dose.time);
+                                    return (
+                                        <div
+                                            key={dose.id}
+                                            className={cn(
+                                                "flex items-center space-x-3 rounded-md p-2 transition-colors",
+                                                dose.taken && "bg-accent text-accent-foreground"
+                                            )}
                                         >
-                                            {format(new Date(dose.time), "h:mm aa")}
-                                        </Label>
-                                    </div>
-                                ))}
+                                            <DoseCheckbox
+                                                medicationId={medication.id}
+                                                dose={dose}
+                                                onDoseChange={handleDoseChange}
+                                            />
+                                            <Label
+                                                htmlFor={dose.id}
+                                                className={cn("text-lg font-mono", dose.taken && "line-through opacity-70")}
+                                            >
+                                                {format(doseTime, "h:mm aa")}
+                                            </Label>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         </CardContent>
                     </Card>
