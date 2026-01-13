@@ -61,7 +61,7 @@ export async function addMedication(values: FormValues) {
   } = validation.data;
 
   try {
-    const { firestore } = getSdks();
+    const { firestore } = await getSdks();
     const [hours, minutes] = initialDoseTime.split(':').map(Number);
     const startDate = new Date(initialDoseDate);
     startDate.setHours(hours, minutes, 0, 0);
@@ -101,7 +101,7 @@ export async function updateDoseState(
   taken: boolean,
 ) {
   try {
-    const { firestore } = getSdks();
+    const { firestore } = await getSdks();
     const docRef = doc(firestore, `users/${userId}/medications`, medicationId);
     
     const newDoses = doses.map((dose) =>

@@ -6,7 +6,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase() {
+export async function initializeFirebase() {
   if (!getApps().length) {
     // Important! initializeApp() is called without any arguments because Firebase App Hosting
     // integrates with the initializeApp() function to provide the environment variables needed to
@@ -30,8 +30,12 @@ export function initializeFirebase() {
   return getSdks();
 }
 
-export function getSdks() {
-  initializeFirebase();
+export async function getSdks() {
+  if (!getApps().length) {
+    // Call the initializeFirebase function, but we don't need its return value here.
+    // The main point is to ensure the app is initialized.
+    await initializeFirebase();
+  }
   return {
     auth: getAuth(),
     firestore: getFirestore(),
