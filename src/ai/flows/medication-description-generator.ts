@@ -8,8 +8,8 @@
  * - MedicationDescriptionOutput - The return type for the generateMedicationDescription function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai, z, defineFlow, definePrompt } from '@/ai/genkit';
+
 
 const MedicationDescriptionInputSchema = z.object({
   medicationName: z.string().describe('The name of the medication.'),
@@ -30,7 +30,7 @@ export async function generateMedicationDescription(
   return medicationDescriptionGeneratorFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const medicationDescriptionPrompt = definePrompt({
   name: 'medicationDescriptionPrompt',
   input: {schema: MedicationDescriptionInputSchema},
   output: {schema: MedicationDescriptionOutputSchema},
@@ -46,14 +46,18 @@ const prompt = ai.definePrompt({
   Description:`,
 });
 
-const medicationDescriptionGeneratorFlow = ai.defineFlow(
+const medicationDescriptionGeneratorFlow = defineFlow(
   {
     name: 'medicationDescriptionGeneratorFlow',
     inputSchema: MedicationDescriptionInputSchema,
     outputSchema: MedicationDescriptionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const llmResponse = await medicationDescriptionPrompt(input);
+    const output = llmResponse.output();
+    if (!output) {
+      throw new Error("Failed to generate description: AI model did not return a valid output.");
+    }
+    return output;
   }
 );
