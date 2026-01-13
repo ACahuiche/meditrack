@@ -3,34 +3,49 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/header';
 import { MedicationList } from '@/components/medication-list';
-import type { Medication, Dose } from '@/lib/types';
+import type { Medication, Dose, HistoricalMedication } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import { addHours } from 'date-fns';
+import { addHours, addDays } from 'date-fns';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HistoricalMedicationList } from '@/components/historical-medication-list';
 
 export default function Home() {
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [history, setHistory] = useState<HistoricalMedication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load medications from localStorage
+  // Load data from localStorage
   useEffect(() => {
     try {
       const storedMedications = localStorage.getItem('medications');
       if (storedMedications) {
         setMedications(JSON.parse(storedMedications));
       }
+      const storedHistory = localStorage.getItem('medicationHistory');
+      if (storedHistory) {
+        setHistory(JSON.parse(storedHistory));
+      }
     } catch (error) {
-      console.error("Failed to parse medications from localStorage", error);
+      console.error("Failed to parse data from localStorage", error);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Save medications to localStorage whenever they change
+  // Save medications to localStorage
   useEffect(() => {
     if (!isLoading) {
       localStorage.setItem('medications', JSON.stringify(medications));
     }
   }, [medications, isLoading]);
+
+  // Save history to localStorage
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem('medicationHistory', JSON.stringify(history));
+    }
+  }, [history, isLoading]);
+
 
   const generateDoseSchedule = (
     startDate: Date,
@@ -83,19 +98,43 @@ export default function Home() {
   }, []);
 
   const handleUpdateDose = useCallback((medicationId: string, doseId: string, taken: boolean) => {
+    let completedMed: Medication | undefined;
+
     setMedications(prevMeds =>
       prevMeds.map(med => {
         if (med.id === medicationId) {
+          const updatedDoses = med.doses.map(dose =>
+            dose.id === doseId ? { ...dose, taken } : dose
+          );
+          
+          const isComplete = updatedDoses.every(d => d.taken);
+          if (isComplete) {
+            completedMed = { ...med, doses: updatedDoses };
+            return med; // We will filter it out later
+          }
+
           return {
             ...med,
-            doses: med.doses.map(dose =>
-              dose.id === doseId ? { ...dose, taken } : dose
-            ),
+            doses: updatedDoses,
           };
         }
         return med;
-      })
+      }).filter(med => !completedMed || med.id !== completedMed.id)
     );
+
+    if (completedMed) {
+      const historicalEntry: HistoricalMedication = {
+        id: completedMed.id,
+        name: completedMed.name,
+        description: completedMed.description,
+        dosageFrequencyHours: completedMed.dosageFrequencyHours,
+        totalDoses: completedMed.doses.length,
+        startDate: completedMed.initialDoseTimestamp,
+        endDate: addDays(new Date(completedMed.initialDoseTimestamp), completedMed.durationDays).toISOString(),
+        completedAt: new Date().toISOString()
+      };
+      setHistory(prevHistory => [historicalEntry, ...prevHistory].sort((a,b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()));
+    }
   }, []);
 
   if (isLoading) {
@@ -114,7 +153,18 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col">
       <Header onAddMedication={handleAddMedication} />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <MedicationList medications={medications} onUpdateDose={handleUpdateDose} />
+         <Tabs defaultValue="active" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+          </TabsList>
+          <TabsContent value="active" className="mt-4">
+            <MedicationList medications={medications} onUpdateDose={handleUpdateDose} />
+          </TabsContent>
+          <TabsContent value="history" className="mt-4">
+            <HistoricalMedicationList medications={history} />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

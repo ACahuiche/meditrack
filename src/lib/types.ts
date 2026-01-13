@@ -14,3 +14,14 @@ export type Medication = {
   createdAt: string; // ISO string
   doses: Dose[];
 };
+
+export type HistoricalMedication = {
+    id: string;
+    name: string;
+    description: string;
+    dosageFrequencyHours: number;
+    totalDoses: number;
+    startDate: string; // ISO String
+    endDate: string; // ISO String
+    completedAt: string; // ISO String
+};
