@@ -8,11 +8,24 @@ import { Loader2 } from 'lucide-react';
 import { addHours, addDays } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HistoricalMedicationList } from '@/components/historical-medication-list';
+import { useAuth } from '@/firebase/provider';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [history, setHistory] = useState<HistoricalMedication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
 
   // Load data from localStorage
   useEffect(() => {
@@ -137,14 +150,11 @@ export default function Home() {
     }
   }, []);
 
-  if (isLoading) {
+  if (authLoading || isLoading || !user) {
     return (
-      <div className="flex min-h-screen w-full flex-col">
-        <Header onAddMedication={handleAddMedication} />
-        <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 md:gap-8 md:p-8">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading medications...</p>
-        </main>
+      <div className="flex min-h-screen w-full flex-col items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground mt-4">Loading...</p>
       </div>
     );
   }
