@@ -6,6 +6,7 @@ import type { Dose, Medication } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { addHours } from "date-fns";
 import { generateMedicationDescription, MedicationDescriptionInput } from "@/ai/flows/medication-description-generator";
+import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 
 const formSchema = z.object({
   name: z.string().min(2),
@@ -74,7 +75,7 @@ export async function addMedication(values: FormValues) {
       createdAt: new Date().toISOString(),
     };
 
-    await db.collection("medications").add(newMedication);
+    await addDoc(collection(db, "medications"), newMedication);
 
     revalidatePath("/");
     return { success: true };
@@ -90,10 +91,10 @@ export async function updateDoseState(
   taken: boolean
 ) {
   try {
-    const docRef = db.collection("medications").doc(medicationId);
-    const docSnap = await docRef.get();
+    const docRef = doc(db, "medications", medicationId);
+    const docSnap = await getDoc(docRef);
 
-    if (!docSnap.exists) {
+    if (!docSnap.exists()) {
       throw new Error("Medication not found");
     }
 
@@ -102,7 +103,7 @@ export async function updateDoseState(
       dose.id === doseId ? { ...dose, taken } : dose
     );
 
-    await docRef.update({ doses: newDoses });
+    await updateDoc(docRef, { doses: newDoses });
 
     revalidatePath("/");
   } catch (error) {

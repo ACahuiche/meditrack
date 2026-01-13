@@ -4,10 +4,13 @@ import { db } from "@/lib/firebase";
 import type { Medication } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
 
 async function getMedications() {
   try {
-    const snapshot = await db.collection("medications").orderBy("createdAt", "desc").get();
+    const medicationsCol = collection(db, "medications");
+    const q = query(medicationsCol, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
     if (snapshot.empty) {
       return [];
     }
