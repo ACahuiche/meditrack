@@ -3,13 +3,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useTransition } from 'react';
-import { addMedication } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -18,8 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { useUser } from '@/firebase';
+import type { Medication } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Medication name must be at least 2 characters.'),
@@ -34,16 +30,20 @@ const formSchema = z.object({
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM).'),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
+type AddMedicationFormProps = {
+  setOpen: (open: boolean) => void;
+  onAddMedication: (values: FormValues) => void;
+};
+
 export function AddMedicationForm({
   setOpen,
-}: {
-  setOpen: (open: boolean) => void;
-}) {
-  const [isPending, startTransition] = useTransition();
+  onAddMedication,
+}: AddMedicationFormProps) {
   const { toast } = useToast();
-  const { user } = useUser();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
@@ -54,35 +54,16 @@ export function AddMedicationForm({
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to add medication.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await addMedication({ ...values, userId: user.uid });
-      if (result.error) {
-        toast({
-          title: 'Error adding medication',
-          description: result.error,
-          variant: 'destructive',
-        });
-      } else if (result.success){
-        toast({
-          title: 'Success!',
-          description: `Medication "${values.name}" has been added.`,
-          variant: 'default',
-          className: 'bg-accent text-accent-foreground',
-        });
-        setOpen(false);
-        form.reset();
-      }
+  function onSubmit(values: FormValues) {
+    onAddMedication(values);
+    toast({
+      title: 'Success!',
+      description: `Medication "${values.name}" has been added.`,
+      variant: 'default',
+      className: 'bg-accent text-accent-foreground',
     });
+    setOpen(false);
+    form.reset();
   }
 
   return (
@@ -180,8 +161,7 @@ export function AddMedicationForm({
           />
         </div>
 
-        <Button type="submit" disabled={isPending} className="w-full">
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" className="w-full">
           Add Medication
         </Button>
       </form>

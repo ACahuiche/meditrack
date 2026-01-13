@@ -17,7 +17,7 @@ import {
 import { DosageSchedule } from "./dosage-schedule";
 import { Pill } from "lucide-react";
 
-export function MedicationCard({ medication }: { medication: Medication }) {
+export function MedicationCard({ medication, onUpdateDose }: { medication: Medication, onUpdateDose: (medicationId: string, doseId: string, taken: boolean) => void }) {
   return (
     <Card>
       <CardHeader>
@@ -40,7 +40,7 @@ export function MedicationCard({ medication }: { medication: Medication }) {
               Dosage Schedule
             </AccordionTrigger>
             <AccordionContent>
-              <DosageSchedule medication={medication} />
+              <DosageSchedule medication={medication} onUpdateDose={onUpdateDose} />
             </AccordionContent>
           </AccordionItem>
         </Accordion>

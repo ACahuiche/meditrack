@@ -11,9 +11,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
-import { AddMedicationForm as AddMedicationFormComponent } from "./add-medication-form";
+import { AddMedicationForm } from "./add-medication-form";
+import type { Medication } from "@/lib/types";
 
-export function AddMedicationDialog() {
+type AddMedicationDialogProps = {
+  onAddMedication: (values: Omit<Medication, 'id' | 'doses' | 'createdAt' | 'initialDoseTimestamp'> & { initialDoseDate: Date; initialDoseTime: string }) => void;
+};
+
+
+export function AddMedicationDialog({ onAddMedication }: AddMedicationDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -31,7 +37,7 @@ export function AddMedicationDialog() {
             Fill in the details below to add a new medication to your schedule.
           </DialogDescription>
         </DialogHeader>
-        <AddMedicationFormComponent setOpen={setOpen} />
+        <AddMedicationForm setOpen={setOpen} onAddMedication={onAddMedication} />
       </DialogContent>
     </Dialog>
   );

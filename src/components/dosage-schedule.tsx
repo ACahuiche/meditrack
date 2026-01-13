@@ -2,7 +2,6 @@
 
 import { useOptimistic, useTransition } from 'react';
 import type { Dose, Medication } from '@/lib/types';
-import { updateDoseState } from '@/lib/actions';
 import { format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -10,24 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { CircleCheck, CircleDashed } from 'lucide-react';
-import { useUser } from '@/firebase';
 
 type GroupedDoses = { [key: string]: Dose[] };
 
-function DoseCheckbox({ medicationId, dose, onDoseChange }: { medicationId: string, dose: Dose, onDoseChange: (doseId: string, taken: boolean) => void }) {
-    const { user } = useUser();
-    const [isPending, startTransition] = useTransition();
-
-    const handleCheckedChange = async (checked: boolean) => {
-        if (!user) return;
+function DoseCheckbox({ medicationId, dose, onDoseChange }: { medicationId: string, dose: Dose, onDoseChange: (medicationId: string, doseId: string, taken: boolean) => void }) {
+    
+    const handleCheckedChange = (checked: boolean) => {
         const newTakenState = !!checked;
-        
-        // Optimistic update
-        onDoseChange(dose.id, newTakenState);
-
-        startTransition(() => {
-            updateDoseState(user.uid, medicationId, dose.id, newTakenState);
-        });
+        onDoseChange(medicationId, dose.id, newTakenState);
     };
 
     return (
@@ -36,20 +25,20 @@ function DoseCheckbox({ medicationId, dose, onDoseChange }: { medicationId: stri
             checked={dose.taken}
             onCheckedChange={handleCheckedChange}
             className="h-5 w-5 rounded-full"
-            disabled={isPending}
         />
     );
 }
 
-export function DosageSchedule({ medication }: { medication: Medication }) {
+export function DosageSchedule({ medication, onUpdateDose }: { medication: Medication, onUpdateDose: (medicationId: string, doseId: string, taken: boolean) => void }) {
     const [optimisticDoses, setOptimisticDoses] = useOptimistic<Dose[], { doseId: string; taken: boolean }>(
         medication.doses,
         (state, { doseId, taken }) =>
             state.map((d) => (d.id === doseId ? { ...d, taken } : d))
     );
 
-    const handleDoseChange = (doseId: string, taken: boolean) => {
+    const handleDoseChange = (medicationId: string, doseId: string, taken: boolean) => {
         setOptimisticDoses({ doseId, taken });
+        onUpdateDose(medicationId, doseId, taken);
     };
 
     const groupedDoses = optimisticDoses.reduce<GroupedDoses>((acc, dose) => {

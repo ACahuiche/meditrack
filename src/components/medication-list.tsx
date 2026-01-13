@@ -4,7 +4,7 @@ import type { Medication } from "@/lib/types";
 import { MedicationCard } from "./medication-card";
 import { Pill } from "lucide-react";
 
-export function MedicationList({ medications }: { medications: Medication[] }) {
+export function MedicationList({ medications, onUpdateDose }: { medications: Medication[], onUpdateDose: (medicationId: string, doseId: string, taken: boolean) => void }) {
   if (medications.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
@@ -24,7 +24,7 @@ export function MedicationList({ medications }: { medications: Medication[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {medications.map((med) => (
-        <MedicationCard key={med.id} medication={med} />
+        <MedicationCard key={med.id} medication={med} onUpdateDose={onUpdateDose} />
       ))}
     </div>
   );
