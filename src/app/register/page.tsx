@@ -11,7 +11,7 @@ import {
   setPersistence,
   browserLocalPersistence,
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -64,6 +64,8 @@ export default function RegisterPage() {
     const checkRegistrationStatus = async () => {
       setCheckingStatus(true);
       if (!firestore) {
+        // If firestore is not available, assume registration is enabled by default
+        // for local development or in case of initialization error.
         setIsRegisterAvailable(true);
         setCheckingStatus(false);
         return;
@@ -75,11 +77,13 @@ export default function RegisterPage() {
         if (configDoc.exists() && configDoc.data().isRegisterAvailable === false) {
           setIsRegisterAvailable(false);
         } else {
+          // Default to true if doc/field doesn't exist or if it's explicitly true
           setIsRegisterAvailable(true);
         }
       } catch (error) {
         console.error("Error checking registration status:", error);
-        setIsRegisterAvailable(false); // Default to disabled if there's an error
+        // Default to disabled if there's a Firestore error (like permissions)
+        setIsRegisterAvailable(false); 
       } finally {
         setCheckingStatus(false);
       }
@@ -112,6 +116,13 @@ export default function RegisterPage() {
       await updateProfile(userCredential.user, {
         displayName: values.name,
       });
+
+      if (firestore) {
+        await setDoc(doc(firestore, "users", userCredential.user.uid), {
+          name: values.name,
+          email: values.email,
+        });
+      }
 
       toast({
         title: 'Registration Successful',
