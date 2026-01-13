@@ -6,7 +6,10 @@ import {
   generateMedicationDescription,
   type MedicationDescriptionInput,
 } from '@/ai/flows/medication-description-generator';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import {
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from '@/firebase/non-blocking-updates';
 import { collection, doc } from 'firebase/firestore';
 import { getSdks } from '@/firebase/server-actions';
 import type { Dose, Medication } from './types';
@@ -30,7 +33,8 @@ function generateDoseSchedule(
   durationDays: number
 ): Dose[] {
   const doses: Dose[] = [];
-  const numberOfDoses = Math.floor((durationDays * 24) / frequencyHours);
+  const totalHours = durationDays * 24;
+  const numberOfDoses = Math.floor(totalHours / frequencyHours);
 
   for (let i = 0; i < numberOfDoses; i++) {
     const doseTime = addHours(startDate, i * frequencyHours);
@@ -82,8 +86,8 @@ export async function addMedication(values: FormValues) {
       createdAt: new Date().toISOString(),
     };
 
-    const medicationsColRef = collection(firestore, `users/${userId}/medications`);
-    await addDocumentNonBlocking(medicationsColRef, newMedication);
+    const medicationsColRef = firestore.collection(`users/${userId}/medications`);
+    await medicationsColRef.add(newMedication);
 
     revalidatePath('/');
     return { success: true };
@@ -98,12 +102,12 @@ export async function updateDoseState(
   medicationId: string,
   doses: Dose[],
   doseId: string,
-  taken: boolean,
+  taken: boolean
 ) {
   try {
     const { firestore } = await getSdks();
     const docRef = doc(firestore, `users/${userId}/medications`, medicationId);
-    
+
     const newDoses = doses.map((dose) =>
       dose.id === doseId ? { ...dose, taken } : dose
     );
