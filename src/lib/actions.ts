@@ -2,10 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { addHours } from 'date-fns';
-import {
-  generateMedicationDescription,
-  type MedicationDescriptionInput,
-} from '@/ai/flows/medication-description-generator';
 import { getSdks } from '@/firebase/server-actions';
 import type { Dose, Medication } from './types';
 import * as z from 'zod';
@@ -120,17 +116,5 @@ export async function updateDoseState(
   } catch (error: any) {
     console.error('Failed to update dose state:', error);
     return { error: error.message || 'Failed to update dose state.' };
-  }
-}
-
-export async function generateDescriptionForMedication(
-  input: MedicationDescriptionInput
-) {
-  try {
-    const result = await generateMedicationDescription(input);
-    return result;
-  } catch (error) {
-    console.error('AI description generation failed:', error);
-    throw new Error('Failed to generate description.');
   }
 }

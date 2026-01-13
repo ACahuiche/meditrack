@@ -4,10 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useTransition } from 'react';
-import {
-  addMedication,
-  generateDescriptionForMedication,
-} from '@/lib/actions';
+import { addMedication } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -21,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
 
 const formSchema = z.object({
@@ -43,7 +40,6 @@ export function AddMedicationForm({
   setOpen: (open: boolean) => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [isGenerating, startGeneratingTransition] = useTransition();
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -89,44 +85,6 @@ export function AddMedicationForm({
     });
   }
 
-  async function handleGenerateDescription() {
-    const values = form.getValues();
-    if (
-      !values.name ||
-      !values.dosageFrequencyHours ||
-      !values.durationDays ||
-      !values.initialDoseTime
-    ) {
-      toast({
-        title: 'Missing Information',
-        description:
-          'Please fill in Name, Frequency, Duration, and Start Time before generating a description.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    startGeneratingTransition(async () => {
-      try {
-        const { description } = await generateDescriptionForMedication({
-          medicationName: values.name,
-          dosageFrequencyHours: values.dosageFrequencyHours,
-          durationDays: values.durationDays,
-          initialDoseTime: values.initialDoseTime,
-        });
-        if (description) {
-          form.setValue('description', description);
-        }
-      } catch (e) {
-        toast({
-          title: 'AI Error',
-          description: 'Failed to generate description.',
-          variant: 'destructive',
-        });
-      }
-    });
-  }
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -148,23 +106,7 @@ export function AddMedicationForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center justify-between">
-                <span>Description (Optional)</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleGenerateDescription}
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  <span className="ml-2">Generate with AI</span>
-                </Button>
-              </FormLabel>
+              <FormLabel>Description (Optional)</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="e.g., Take with food. For bacterial infection."
