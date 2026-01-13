@@ -64,7 +64,6 @@ export default function RegisterPage() {
     const checkRegistrationStatus = async () => {
       setCheckingStatus(true);
       if (!firestore) {
-        // If firestore is not available for some reason, default to allowing registration.
         setIsRegisterAvailable(true);
         setCheckingStatus(false);
         return;
@@ -74,27 +73,19 @@ export default function RegisterPage() {
         const configDoc = await getDoc(configDocRef);
         
         if (configDoc.exists() && configDoc.data().isRegisterAvailable === false) {
-          // If the doc exists and registration is explicitly set to false
           setIsRegisterAvailable(false);
         } else {
-          // In all other cases (doc doesn't exist, field doesn't exist, field is true), allow registration
           setIsRegisterAvailable(true);
         }
       } catch (error) {
         console.error("Error checking registration status:", error);
-        // If there is a permissions error, we can't check the status, so we disable registration.
-        setIsRegisterAvailable(false);
-        toast({
-          title: 'Error de permisos',
-          description: 'No se pudo verificar el estado del registro. Contacta al administrador.',
-          variant: 'destructive',
-        });
+        setIsRegisterAvailable(false); // Default to disabled if there's an error
       } finally {
         setCheckingStatus(false);
       }
     };
     checkRegistrationStatus();
-  }, [firestore, toast]);
+  }, [firestore]);
 
 
   const form = useForm<FormValues>({
