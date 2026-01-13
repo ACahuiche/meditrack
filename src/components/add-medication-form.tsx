@@ -50,6 +50,7 @@ export function AddMedicationForm({
       description: "",
       dosageFrequencyHours: 8,
       durationDays: 7,
+      initialDoseTime: "",
     },
   });
 
