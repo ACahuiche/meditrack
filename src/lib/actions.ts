@@ -1,12 +1,16 @@
-"use server";
+'use server';
 
-import * as z from "zod";
-import { db } from "@/lib/firebase";
-import type { Dose, Medication } from "@/lib/types";
-import { revalidatePath } from "next/cache";
-import { addHours } from "date-fns";
-import { generateMedicationDescription, MedicationDescriptionInput } from "@/ai/flows/medication-description-generator";
-import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
+import { revalidatePath } from 'next/cache';
+import { addHours } from 'date-fns';
+import {
+  generateMedicationDescription,
+  type MedicationDescriptionInput,
+} from '@/ai/flows/medication-description-generator';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { getSdks } from '@/firebase/server-actions';
+import type { Dose, Medication } from './types';
+import * as z from 'zod';
 
 const formSchema = z.object({
   name: z.string().min(2),
@@ -15,6 +19,7 @@ const formSchema = z.object({
   durationDays: z.coerce.number().min(1),
   initialDoseDate: z.date(),
   initialDoseTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  userId: z.string(), // Added userId to associate medication with a user
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -42,7 +47,7 @@ export async function addMedication(values: FormValues) {
   const validation = formSchema.safeParse(values);
 
   if (!validation.success) {
-    return { error: "Invalid data provided." };
+    return { error: 'Invalid data provided.' };
   }
 
   const {
@@ -52,10 +57,12 @@ export async function addMedication(values: FormValues) {
     durationDays,
     initialDoseDate,
     initialDoseTime,
+    userId,
   } = validation.data;
 
   try {
-    const [hours, minutes] = initialDoseTime.split(":").map(Number);
+    const { firestore } = getSdks();
+    const [hours, minutes] = initialDoseTime.split(':').map(Number);
     const startDate = new Date(initialDoseDate);
     startDate.setHours(hours, minutes, 0, 0);
 
@@ -65,9 +72,9 @@ export async function addMedication(values: FormValues) {
       durationDays
     );
 
-    const newMedication: Omit<Medication, "id"> = {
+    const newMedication: Omit<Medication, 'id'> = {
       name,
-      description: description || "",
+      description: description || '',
       dosageFrequencyHours,
       durationDays,
       initialDoseTimestamp: startDate.toISOString(),
@@ -75,49 +82,49 @@ export async function addMedication(values: FormValues) {
       createdAt: new Date().toISOString(),
     };
 
-    await addDoc(collection(db, "medications"), newMedication);
+    const medicationsColRef = collection(firestore, `users/${userId}/medications`);
+    await addDocumentNonBlocking(medicationsColRef, newMedication);
 
-    revalidatePath("/");
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error(error);
-    return { error: "Failed to add medication." };
+    return { error: 'Failed to add medication.' };
   }
 }
 
 export async function updateDoseState(
+  userId: string,
   medicationId: string,
+  doses: Dose[],
   doseId: string,
-  taken: boolean
+  taken: boolean,
 ) {
   try {
-    const docRef = doc(db, "medications", medicationId);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      throw new Error("Medication not found");
-    }
-
-    const medication = docSnap.data() as Medication;
-    const newDoses = medication.doses.map((dose) =>
+    const { firestore } = getSdks();
+    const docRef = doc(firestore, `users/${userId}/medications`, medicationId);
+    
+    const newDoses = doses.map((dose) =>
       dose.id === doseId ? { ...dose, taken } : dose
     );
 
-    await updateDoc(docRef, { doses: newDoses });
+    updateDocumentNonBlocking(docRef, { doses: newDoses });
 
-    revalidatePath("/");
+    revalidatePath('/');
   } catch (error) {
-    console.error(error);
-    // Optionally return an error message
+    console.error('Failed to update dose state:', error);
+    // In a real app, you might want to return an error object
   }
 }
 
-export async function generateDescriptionForMedication(input: MedicationDescriptionInput) {
+export async function generateDescriptionForMedication(
+  input: MedicationDescriptionInput
+) {
   try {
     const result = await generateMedicationDescription(input);
     return result;
   } catch (error) {
-    console.error("AI description generation failed:", error);
-    throw new Error("Failed to generate description.");
+    console.error('AI description generation failed:', error);
+    throw new Error('Failed to generate description.');
   }
 }

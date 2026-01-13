@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useTransition } from "react";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useTransition } from 'react';
 import {
   addMedication,
   generateDescriptionForMedication,
-} from "@/lib/actions";
-import { Button } from "@/components/ui/button";
+} from '@/lib/actions';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -17,21 +17,24 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles } from "lucide-react";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Sparkles } from 'lucide-react';
+import { useUser } from '@/firebase';
 
 const formSchema = z.object({
-  name: z.string().min(2, "Medication name must be at least 2 characters."),
+  name: z.string().min(2, 'Medication name must be at least 2 characters.'),
   description: z.string().optional(),
   dosageFrequencyHours: z.coerce
     .number()
-    .min(1, "Frequency must be at least 1 hour."),
-  durationDays: z.coerce.number().min(1, "Duration must be at least 1 day."),
-  initialDoseDate: z.date({ required_error: "Please select a date." }),
-  initialDoseTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)."),
+    .min(1, 'Frequency must be at least 1 hour.'),
+  durationDays: z.coerce.number().min(1, 'Duration must be at least 1 day.'),
+  initialDoseDate: z.date({ required_error: 'Please select a date.' }),
+  initialDoseTime: z
+    .string()
+    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM).'),
 });
 
 export function AddMedicationForm({
@@ -42,52 +45,69 @@ export function AddMedicationForm({
   const [isPending, startTransition] = useTransition();
   const [isGenerating, startGeneratingTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useUser();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      description: "",
+      name: '',
+      description: '',
       dosageFrequencyHours: 8,
       durationDays: 7,
-      initialDoseTime: "",
+      initialDoseTime: "08:00",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to add medication.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     startTransition(async () => {
-      const result = await addMedication(values);
+      const result = await addMedication({ ...values, userId: user.uid });
       if (result.error) {
         toast({
-          title: "Error",
+          title: 'Error',
           description: result.error,
-          variant: "destructive",
+          variant: 'destructive',
         });
       } else {
         toast({
-          title: "Success!",
+          title: 'Success!',
           description: `Medication "${values.name}" has been added.`,
-          variant: "default",
-          className: "bg-accent text-accent-foreground",
+          variant: 'default',
+          className: 'bg-accent text-accent-foreground',
         });
         setOpen(false);
+        form.reset();
       }
     });
   }
 
   async function handleGenerateDescription() {
     const values = form.getValues();
-    if (!values.name || !values.dosageFrequencyHours || !values.durationDays || !values.initialDoseTime) {
+    if (
+      !values.name ||
+      !values.dosageFrequencyHours ||
+      !values.durationDays ||
+      !values.initialDoseTime
+    ) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in Name, Frequency, Duration, and Start Time before generating a description.",
-        variant: "destructive",
+        title: 'Missing Information',
+        description:
+          'Please fill in Name, Frequency, Duration, and Start Time before generating a description.',
+        variant: 'destructive',
       });
       return;
     }
 
     startGeneratingTransition(async () => {
-       try {
+      try {
         const { description } = await generateDescriptionForMedication({
           medicationName: values.name,
           dosageFrequencyHours: values.dosageFrequencyHours,
@@ -95,10 +115,14 @@ export function AddMedicationForm({
           initialDoseTime: values.initialDoseTime,
         });
         if (description) {
-            form.setValue("description", description);
+          form.setValue('description', description);
         }
       } catch (e) {
-         toast({ title: "AI Error", description: "Failed to generate description.", variant: "destructive" });
+        toast({
+          title: 'AI Error',
+          description: 'Failed to generate description.',
+          variant: 'destructive',
+        });
       }
     });
   }
@@ -126,8 +150,18 @@ export function AddMedicationForm({
             <FormItem>
               <FormLabel className="flex items-center justify-between">
                 <span>Description (Optional)</span>
-                <Button type="button" variant="ghost" size="sm" onClick={handleGenerateDescription} disabled={isGenerating}>
-                  {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
                   <span className="ml-2">Generate with AI</span>
                 </Button>
               </FormLabel>
@@ -170,33 +204,38 @@ export function AddMedicationForm({
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
-            <FormField
-                control={form.control}
-                name="initialDoseDate"
-                render={({ field }) => (
-                <FormItem className="flex flex-col pt-2">
-                    <FormLabel>Start Date</FormLabel>
-                    <Input type="date"
-                      value={field.value ? field.value.toISOString().split('T')[0] : ''}
-                      onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
-                     />
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="initialDoseTime"
-                render={({ field }) => (
-                <FormItem className="flex flex-col pt-2">
-                    <FormLabel>Start Time</FormLabel>
-                    <FormControl>
-                    <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
+          <FormField
+            control={form.control}
+            name="initialDoseDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col pt-2">
+                <FormLabel>Start Date</FormLabel>
+                <Input
+                  type="date"
+                  value={
+                    field.value ? field.value.toISOString().split('T')[0] : ''
+                  }
+                  onChange={(e) =>
+                    field.onChange(e.target.value ? new Date(e.target.value) : null)
+                  }
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="initialDoseTime"
+            render={({ field }) => (
+              <FormItem className="flex flex-col pt-2">
+                <FormLabel>Start Time</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <Button type="submit" disabled={isPending} className="w-full">
