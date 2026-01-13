@@ -18,16 +18,16 @@ import { useToast } from '@/hooks/use-toast';
 import type { Medication } from '@/lib/types';
 
 const formSchema = z.object({
-  name: z.string().min(2, 'Medication name must be at least 2 characters.'),
+  name: z.string().min(2, 'El nombre del medicamento debe tener al menos 2 caracteres.'),
   description: z.string().optional(),
   dosageFrequencyHours: z.coerce
     .number()
-    .min(1, 'Frequency must be at least 1 hour.'),
-  durationDays: z.coerce.number().min(1, 'Duration must be at least 1 day.'),
-  initialDoseDate: z.date({ required_error: 'Please select a date.' }),
+    .min(1, 'La frecuencia debe ser de al menos 1 hora.'),
+  durationDays: z.coerce.number().min(1, 'La duración debe ser de al menos 1 día.'),
+  initialDoseDate: z.date({ required_error: 'Por favor, selecciona una fecha.' }),
   initialDoseTime: z
     .string()
-    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM).'),
+    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora no válido (HH:MM).'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -57,8 +57,8 @@ export function AddMedicationForm({
   function onSubmit(values: FormValues) {
     onAddMedication(values);
     toast({
-      title: 'Success!',
-      description: `Medication "${values.name}" has been added.`,
+      title: '¡Éxito!',
+      description: `El medicamento "${values.name}" ha sido añadido.`,
       variant: 'default',
       className: 'bg-accent text-accent-foreground',
     });
@@ -74,9 +74,9 @@ export function AddMedicationForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Medication Name</FormLabel>
+              <FormLabel>Nombre del Medicamento</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Amoxicillin" {...field} />
+                <Input placeholder="ej., Amoxicilina" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -87,10 +87,10 @@ export function AddMedicationForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description (Optional)</FormLabel>
+              <FormLabel>Descripción (Opcional)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="e.g., Take with food. For bacterial infection."
+                  placeholder="ej., Tomar con comida. Para infección bacteriana."
                   {...field}
                 />
               </FormControl>
@@ -104,9 +104,9 @@ export function AddMedicationForm({
             name="dosageFrequencyHours"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Frequency (hours)</FormLabel>
+                <FormLabel>Frecuencia (horas)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 8" {...field} />
+                  <Input type="number" placeholder="ej., 8" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -117,9 +117,9 @@ export function AddMedicationForm({
             name="durationDays"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration (days)</FormLabel>
+                <FormLabel>Duración (días)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 7" {...field} />
+                  <Input type="number" placeholder="ej., 7" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -132,7 +132,7 @@ export function AddMedicationForm({
             name="initialDoseDate"
             render={({ field }) => (
               <FormItem className="flex flex-col pt-2">
-                <FormLabel>Start Date</FormLabel>
+                <FormLabel>Fecha de Inicio</FormLabel>
                 <Input
                   type="date"
                   value={
@@ -151,7 +151,7 @@ export function AddMedicationForm({
             name="initialDoseTime"
             render={({ field }) => (
               <FormItem className="flex flex-col pt-2">
-                <FormLabel>Start Time</FormLabel>
+                <FormLabel>Hora de Inicio</FormLabel>
                 <FormControl>
                   <Input type="time" {...field} />
                 </FormControl>
@@ -162,7 +162,7 @@ export function AddMedicationForm({
         </div>
 
         <Button type="submit" className="w-full">
-          Add Medication
+          Añadir Medicamento
         </Button>
       </form>
     </Form>

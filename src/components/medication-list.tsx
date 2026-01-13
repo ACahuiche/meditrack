@@ -11,10 +11,10 @@ export function MedicationList({ medications, onUpdateDose }: { medications: Med
         <div className="flex flex-col items-center gap-2 text-center">
             <Pill className="h-12 w-12 text-muted-foreground" />
           <h3 className="text-2xl font-bold tracking-tight">
-            No medications found
+            No se encontraron medicamentos
           </h3>
           <p className="text-sm text-muted-foreground">
-            Click "Add Medication" to get started.
+            Haz clic en "Añadir Medicamento" para empezar.
           </p>
         </div>
       </div>

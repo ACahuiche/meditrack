@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { ArchiveRestore, CalendarDays, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { es } from 'date-fns/locale';
 import { Doses } from "./icons";
 
 export function HistoricalMedicationCard({ medication }: { medication: HistoricalMedication }) {
@@ -32,18 +33,18 @@ export function HistoricalMedicationCard({ medication }: { medication: Historica
       <CardContent className="grid gap-2 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
             <Doses className="h-4 w-4" />
-            <span>{medication.totalDoses} doses</span>
+            <span>{medication.totalDoses} dosis</span>
         </div>
          <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            <span>Every {medication.dosageFrequencyHours} hours</span>
+            <span>Cada {medication.dosageFrequencyHours} horas</span>
         </div>
         <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            <span>{format(new Date(medication.startDate), "MMM d, yyyy")} - {format(new Date(medication.endDate), "MMM d, yyyy")}</span>
+            <span>{format(new Date(medication.startDate), "d MMM, yyyy", { locale: es })} - {format(new Date(medication.endDate), "d MMM, yyyy", { locale: es })}</span>
         </div>
          <div className="flex items-center gap-2 pt-2 text-xs">
-            Completed on {format(new Date(medication.completedAt), "MMM d, yyyy 'at' h:mm aa")}
+            Completado el {format(new Date(medication.completedAt), "d MMM, yyyy 'a las' h:mm aa", { locale: es })}
         </div>
       </CardContent>
     </Card>

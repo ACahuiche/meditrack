@@ -35,8 +35,8 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
-  email: z.string().email('Please enter a valid email address.'),
-  password: z.string().min(1, 'Password is required.'),
+  email: z.string().email('Por favor, introduce una dirección de correo electrónico válida.'),
+  password: z.string().min(1, 'La contraseña es obligatoria.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -61,20 +61,20 @@ export default function LoginPage() {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
-        title: 'Login Successful',
-        description: 'Welcome back!',
+        title: 'Inicio de Sesión Exitoso',
+        description: '¡Bienvenido de nuevo!',
         variant: 'default',
         className: 'bg-accent text-accent-foreground',
       });
       router.push('/');
     } catch (error: any) {
       console.error('Login Error:', error);
-      let description = 'An unexpected error occurred. Please try again.';
+      let description = 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        description = 'Invalid email or password. Please try again.';
+        description = 'Correo electrónico o contraseña no válidos. Por favor, inténtalo de nuevo.';
       }
       toast({
-        title: 'Login Failed',
+        title: 'Error al Iniciar Sesión',
         description,
         variant: 'destructive',
       });
@@ -91,10 +91,10 @@ export default function LoginPage() {
             <AppLogo className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
-            Welcome Back to MediTrack Rx
+            Bienvenido de Nuevo a MediTrack Rx
           </CardTitle>
           <CardDescription>
-            Enter your credentials to access your schedule.
+            Introduce tus credenciales para acceder a tu horario.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -105,11 +105,11 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Correo Electrónico</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="name@example.com"
+                        placeholder="nombre@ejemplo.com"
                         {...field}
                       />
                     </FormControl>
@@ -122,7 +122,7 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Contraseña</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
@@ -132,14 +132,14 @@ export default function LoginPage() {
               />
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login
+                Iniciar Sesión
               </Button>
             </form>
           </Form>
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
+            ¿No tienes una cuenta?{' '}
             <Link href="/register" className="underline">
-              Register
+              Regístrate
             </Link>
           </div>
         </CardContent>

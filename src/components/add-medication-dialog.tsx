@@ -28,14 +28,14 @@ export function AddMedicationDialog({ onAddMedication }: AddMedicationDialogProp
       <DialogTrigger asChild>
         <Button size="sm" className="gap-1">
           <PlusCircle className="h-4 w-4" />
-          Add Medication
+          Añadir Medicamento
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add New Medication</DialogTitle>
+          <DialogTitle>Añadir Nuevo Medicamento</DialogTitle>
           <DialogDescription>
-            Fill in the details below to add a new medication to your schedule.
+            Rellena los detalles a continuación para añadir un nuevo medicamento a tu horario.
           </DialogDescription>
         </DialogHeader>
         <AddMedicationForm setOpen={setOpen} onAddMedication={onAddMedication} />

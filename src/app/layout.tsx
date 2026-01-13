@@ -5,7 +5,7 @@ import { AuthProvider } from '@/firebase/provider';
 
 export const metadata: Metadata = {
   title: 'MediTrack Rx',
-  description: 'Your personal medication schedule tracker.',
+  description: 'Tu monitor personal de horarios de medicación.',
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

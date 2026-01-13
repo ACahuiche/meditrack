@@ -3,6 +3,7 @@
 import { useOptimistic, useTransition } from 'react';
 import type { Dose, Medication } from '@/lib/types';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,18 +64,18 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
                 return (
                     <Card key={dateKey} className={cn(allTaken && "bg-accent/50 border-accent")}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
-                            <CardTitle className="text-base font-medium">
-                                {format(new Date(dateKey), "eeee, MMMM d")}
+                            <CardTitle className="text-base font-medium capitalize">
+                                {format(new Date(dateKey), "eeee, d 'de' MMMM", { locale: es })}
                             </CardTitle>
                             {allTaken ? (
                                 <Badge variant="outline" className="bg-accent text-accent-foreground border-accent-foreground/50">
                                     <CircleCheck className="mr-1 h-3 w-3" />
-                                    Complete
+                                    Completado
                                 </Badge>
                             ) : (
                                 <Badge variant="secondary">
                                     <CircleDashed className="mr-1 h-3 w-3" />
-                                    In Progress
+                                    En Progreso
                                 </Badge>
                             )}
                         </CardHeader>

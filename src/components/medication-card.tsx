@@ -37,7 +37,7 @@ export function MedicationCard({ medication, onUpdateDose }: { medication: Medic
         <Accordion type="single" collapsible defaultValue="schedule">
           <AccordionItem value="schedule">
             <AccordionTrigger className="text-base font-semibold">
-              Dosage Schedule
+              Horario de Dosis
             </AccordionTrigger>
             <AccordionContent>
               <DosageSchedule medication={medication} onUpdateDose={onUpdateDose} />

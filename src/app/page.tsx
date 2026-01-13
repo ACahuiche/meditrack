@@ -7,7 +7,7 @@ import { Header } from '@/components/header';
 import { MedicationList } from '@/components/medication-list';
 import type { Medication, Dose, HistoricalMedication } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import { addHours, addDays } from 'date-fns';
+import { addDays, addHours } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HistoricalMedicationList } from '@/components/historical-medication-list';
 import { useAuth, useFirebase } from '@/firebase/provider';
@@ -44,8 +44,8 @@ export default function Home() {
         setMedications(meds);
         setIsLoading(false);
       }, (error) => {
-        console.error("Error fetching medications:", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not fetch medications." });
+        console.error("Error al obtener medicamentos:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudieron obtener los medicamentos." });
         setIsLoading(false);
       });
 
@@ -58,8 +58,8 @@ export default function Home() {
         const hist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HistoricalMedication));
         setHistory(hist);
       }, (error) => {
-        console.error("Error fetching history:", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not fetch medication history." });
+        console.error("Error al obtener el historial:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo obtener el historial de medicamentos." });
       });
 
 
@@ -123,8 +123,8 @@ export default function Home() {
       const medRef = collection(firestore, 'users', user.uid, 'medications');
       await addDoc(medRef, newMedication);
     } catch (error) {
-      console.error("Error adding medication:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not save medication." });
+      console.error("Error al añadir medicamento:", error);
+      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar el medicamento." });
     }
   }, [user, firestore, toast]);
 
@@ -157,16 +157,16 @@ export default function Home() {
         await addDoc(collection(firestore, 'users', user.uid, 'history'), historicalEntry);
         await deleteDoc(medDocRef);
       } catch (error) {
-        console.error("Error archiving medication:", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not archive medication." });
+        console.error("Error al archivar medicamento:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo archivar el medicamento." });
       }
 
     } else {
       try {
         await updateDoc(medDocRef, { doses: updatedDoses });
       } catch (error) {
-        console.error("Error updating dose:", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not update dose status." });
+        console.error("Error al actualizar la dosis:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo actualizar el estado de la dosis." });
       }
     }
   }, [user, firestore, medications, toast]);
@@ -175,7 +175,7 @@ export default function Home() {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground mt-4">Loading...</p>
+        <p className="text-muted-foreground mt-4">Cargando...</p>
       </div>
     );
   }
@@ -186,8 +186,8 @@ export default function Home() {
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
          <Tabs defaultValue="active" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="active">Activos</TabsTrigger>
+            <TabsTrigger value="history">Historial</TabsTrigger>
           </TabsList>
           <TabsContent value="active" className="mt-4">
             <MedicationList medications={medications} onUpdateDose={handleUpdateDose} />

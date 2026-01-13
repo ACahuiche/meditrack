@@ -40,13 +40,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters.'),
-    email: z.string().email('Please enter a valid email address.'),
-    password: z.string().min(6, 'Password must be at least 6 characters.'),
+    name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
+    email: z.string().email('Por favor, introduce una dirección de correo electrónico válida.'),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match.",
+    message: "Las contraseñas no coinciden.",
     path: ['confirmPassword'],
   });
 
@@ -62,14 +62,12 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const checkRegistrationStatus = async () => {
-      setCheckingStatus(true);
       if (!firestore) {
-        // If firestore is not available, assume registration is enabled by default
-        // for local development or in case of initialization error.
         setIsRegisterAvailable(true);
         setCheckingStatus(false);
         return;
       }
+      setCheckingStatus(true);
       try {
         const configDocRef = doc(firestore, 'globalSettings', 'config');
         const configDoc = await getDoc(configDocRef);
@@ -77,19 +75,22 @@ export default function RegisterPage() {
         if (configDoc.exists() && configDoc.data().isRegisterAvailable === false) {
           setIsRegisterAvailable(false);
         } else {
-          // Default to true if doc/field doesn't exist or if it's explicitly true
           setIsRegisterAvailable(true);
         }
       } catch (error) {
-        console.error("Error checking registration status:", error);
-        // Default to disabled if there's a Firestore error (like permissions)
+        console.error("Error al verificar el estado del registro:", error);
+        toast({
+          variant: "destructive",
+          title: "Error de configuración",
+          description: "No se pudo verificar el estado del registro. Contacta al administrador."
+        });
         setIsRegisterAvailable(false); 
       } finally {
         setCheckingStatus(false);
       }
     };
     checkRegistrationStatus();
-  }, [firestore]);
+  }, [firestore, toast]);
 
 
   const form = useForm<FormValues>({
@@ -125,20 +126,20 @@ export default function RegisterPage() {
       }
 
       toast({
-        title: 'Registration Successful',
-        description: "You've created your account.",
+        title: 'Registro Exitoso',
+        description: "Has creado tu cuenta.",
         variant: 'default',
         className: 'bg-accent text-accent-foreground',
       });
       router.push('/');
     } catch (error: any) {
       console.error('Registration Error:', error);
-      let description = 'An unexpected error occurred. Please try again.';
+      let description = 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';
       if (error.code === 'auth/email-already-in-use') {
-        description = 'This email is already in use. Please try logging in.';
+        description = 'Este correo electrónico ya está en uso. Por favor, intenta iniciar sesión.';
       }
       toast({
-        title: 'Registration Failed',
+        title: 'Error en el Registro',
         description,
         variant: 'destructive',
       });
@@ -152,7 +153,7 @@ export default function RegisterPage() {
       return (
         <div className="flex flex-col items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">Verifying registration status...</p>
+          <p className="mt-4 text-muted-foreground">Verificando estado del registro...</p>
         </div>
       );
     }
@@ -161,9 +162,9 @@ export default function RegisterPage() {
       return (
         <Alert variant="destructive" className="mt-4">
           <ShieldOff className="h-4 w-4" />
-          <AlertTitle>Registration Disabled</AlertTitle>
+          <AlertTitle>Registro Deshabilitado</AlertTitle>
           <AlertDescription>
-            The administrator has currently disabled new user registration.
+            El administrador ha deshabilitado actualmente el registro de nuevos usuarios.
           </AlertDescription>
         </Alert>
       );
@@ -177,7 +178,7 @@ export default function RegisterPage() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Nombre</FormLabel>
                 <FormControl>
                   <Input placeholder="John Doe" {...field} />
                 </FormControl>
@@ -190,11 +191,11 @@ export default function RegisterPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Correo Electrónico</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
-                    placeholder="name@example.com"
+                    placeholder="nombre@ejemplo.com"
                     {...field}
                   />
                 </FormControl>
@@ -207,7 +208,7 @@ export default function RegisterPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>Contraseña</FormLabel>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} />
                 </FormControl>
@@ -220,7 +221,7 @@ export default function RegisterPage() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
+                <FormLabel>Confirmar Contraseña</FormLabel>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} />
                 </FormControl>
@@ -230,7 +231,7 @@ export default function RegisterPage() {
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create an account
+            Crear una cuenta
           </Button>
         </form>
       </Form>
@@ -245,18 +246,18 @@ export default function RegisterPage() {
             <AppLogo className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
-            Create an Account
+            Crear una Cuenta
           </CardTitle>
           <CardDescription>
-            Enter your details below to get started.
+            Introduce tus datos a continuación para empezar.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {renderContent()}
           <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
+            ¿Ya tienes una cuenta?{' '}
             <Link href="/login" className="underline">
-              Login
+              Iniciar Sesión
             </Link>
           </div>
         </CardContent>
