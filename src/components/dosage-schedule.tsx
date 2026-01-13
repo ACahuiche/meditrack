@@ -30,6 +30,7 @@ function DoseCheckbox({ medicationId, dose, onDoseChange }: { medicationId: stri
 }
 
 export function DosageSchedule({ medication, onUpdateDose }: { medication: Medication, onUpdateDose: (medicationId: string, doseId: string, taken: boolean) => void }) {
+    const [isPending, startTransition] = useTransition();
     const [optimisticDoses, setOptimisticDoses] = useOptimistic<Dose[], { doseId: string; taken: boolean }>(
         medication.doses,
         (state, { doseId, taken }) =>
@@ -37,8 +38,10 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
     );
 
     const handleDoseChange = (medicationId: string, doseId: string, taken: boolean) => {
-        setOptimisticDoses({ doseId, taken });
-        onUpdateDose(medicationId, doseId, taken);
+        startTransition(() => {
+            setOptimisticDoses({ doseId, taken });
+            onUpdateDose(medicationId, doseId, taken);
+        });
     };
 
     const groupedDoses = optimisticDoses.reduce<GroupedDoses>((acc, dose) => {
