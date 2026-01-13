@@ -58,10 +58,15 @@ export default function RegisterPage() {
   const { firestore } = useFirebase();
   const [isRegisterAvailable, setIsRegisterAvailable] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
 
   useEffect(() => {
     const checkRegistrationStatus = async () => {
-      if (!firestore) return;
+      if (!firestore) {
+        setCheckingStatus(false);
+        setIsRegisterAvailable(true); // Default to true if firestore is not available
+        return;
+      }
       try {
         const configDocRef = doc(firestore, 'globalSettings', 'config');
         const configDoc = await getDoc(configDocRef);
@@ -72,12 +77,19 @@ export default function RegisterPage() {
         }
       } catch (error) {
         console.error("Error checking registration status:", error);
-        // Default to true if there's an error, to not block registration unexpectedly.
-        setIsRegisterAvailable(true);
+        toast({
+          title: 'Error de permisos',
+          description: 'No se pudo verificar el estado del registro. Contacta al administrador.',
+          variant: 'destructive',
+        });
+        // If we can't read the doc, we assume registration is closed for security.
+        setIsRegisterAvailable(false);
+      } finally {
+        setCheckingStatus(false);
       }
     };
     checkRegistrationStatus();
-  }, [firestore]);
+  }, [firestore, toast]);
 
 
   const form = useForm<FormValues>({
@@ -129,7 +141,7 @@ export default function RegisterPage() {
   };
 
   const renderContent = () => {
-    if (isRegisterAvailable === null) {
+    if (checkingStatus) {
       return (
         <div className="flex flex-col items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
