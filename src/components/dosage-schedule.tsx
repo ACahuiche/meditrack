@@ -1,7 +1,6 @@
 'use client';
 
-import { useOptimistic, useTransition } from 'react';
-import type { Dose, Medication } from '@/lib/types';
+import type { Dose } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,11 +12,11 @@ import { CircleCheck, CircleDashed } from 'lucide-react';
 
 type GroupedDoses = { [key: string]: Dose[] };
 
-function DoseCheckbox({ medicationId, dose, onDoseChange }: { medicationId: string, dose: Dose, onDoseChange: (medicationId: string, doseId: string, taken: boolean) => void }) {
+function DoseCheckbox({ dose, onDoseChange }: { dose: Dose, onDoseChange: (doseId: string, taken: boolean) => void }) {
     
     const handleCheckedChange = (checked: boolean) => {
         const newTakenState = !!checked;
-        onDoseChange(medicationId, dose.id, newTakenState);
+        onDoseChange(dose.id, newTakenState);
     };
 
     return (
@@ -30,22 +29,9 @@ function DoseCheckbox({ medicationId, dose, onDoseChange }: { medicationId: stri
     );
 }
 
-export function DosageSchedule({ medication, onUpdateDose }: { medication: Medication, onUpdateDose: (medicationId: string, doseId: string, taken: boolean) => void }) {
-    const [isPending, startTransition] = useTransition();
-    const [optimisticDoses, setOptimisticDoses] = useOptimistic<Dose[], { doseId: string; taken: boolean }>(
-        medication.doses,
-        (state, { doseId, taken }) =>
-            state.map((d) => (d.id === doseId ? { ...d, taken } : d))
-    );
+export function DosageSchedule({ doses, medicationId, onDoseChange }: { doses: Dose[], medicationId: string, onDoseChange: (doseId: string, taken: boolean) => void }) {
 
-    const handleDoseChange = (medicationId: string, doseId: string, taken: boolean) => {
-        startTransition(() => {
-            setOptimisticDoses({ doseId, taken });
-            onUpdateDose(medicationId, doseId, taken);
-        });
-    };
-
-    const groupedDoses = optimisticDoses.reduce<GroupedDoses>((acc, dose) => {
+    const groupedDoses = doses.reduce<GroupedDoses>((acc, dose) => {
         const doseDate = parseISO(dose.time);
         const dateKey = format(doseDate, "yyyy-MM-dd");
         if (!acc[dateKey]) {
@@ -96,9 +82,8 @@ export function DosageSchedule({ medication, onUpdateDose }: { medication: Medic
                                             )}
                                         >
                                             <DoseCheckbox
-                                                medicationId={medication.id}
                                                 dose={dose}
-                                                onDoseChange={handleDoseChange}
+                                                onDoseChange={onDoseChange}
                                             />
                                             <Label
                                                 htmlFor={dose.id}

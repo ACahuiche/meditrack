@@ -1,5 +1,6 @@
 "use client";
 
+import { useOptimistic, useTransition } from "react";
 import type { Dose, Medication } from "@/lib/types";
 import {
   Card,
@@ -23,13 +24,15 @@ import { Label } from "./ui/label";
 import { cn } from "@/lib/utils";
 
 function NextDose({
-  medication,
-  onUpdateDose,
+  doses,
+  medicationId,
+  onDoseChange,
 }: {
-  medication: Medication;
-  onUpdateDose: (medicationId: string, doseId: string, taken: boolean) => void;
+  doses: Dose[];
+  medicationId: string;
+  onDoseChange: (doseId: string, taken: boolean) => void;
 }) {
-  const nextDose = medication.doses.find((dose) => !dose.taken);
+  const nextDose = doses.find((dose) => !dose.taken);
 
   if (!nextDose) {
     return (
@@ -40,7 +43,7 @@ function NextDose({
   }
 
   const handleCheckedChange = (checked: boolean) => {
-    onUpdateDose(medication.id, nextDose.id, !!checked);
+    onDoseChange(nextDose.id, !!checked);
   };
 
   const doseTime = parseISO(nextDose.time);
@@ -61,6 +64,7 @@ function NextDose({
         <div className="flex items-center space-x-2">
            <Checkbox
               id={`next-dose-${nextDose.id}`}
+              checked={nextDose.taken} // Asegurarse de que el estado checked refleje el estado real
               onCheckedChange={handleCheckedChange}
               className="h-6 w-6 rounded-full"
             />
@@ -73,6 +77,20 @@ function NextDose({
 
 
 export function MedicationCard({ medication, onUpdateDose }: { medication: Medication, onUpdateDose: (medicationId: string, doseId: string, taken: boolean) => void }) {
+  const [isPending, startTransition] = useTransition();
+  const [optimisticDoses, setOptimisticDoses] = useOptimistic<Dose[], { doseId: string; taken: boolean }>(
+      medication.doses,
+      (state, { doseId, taken }) =>
+          state.map((d) => (d.id === doseId ? { ...d, taken } : d))
+  );
+
+  const handleDoseChange = (doseId: string, taken: boolean) => {
+      startTransition(() => {
+          setOptimisticDoses({ doseId, taken });
+          onUpdateDose(medication.id, doseId, taken);
+      });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -89,14 +107,22 @@ export function MedicationCard({ medication, onUpdateDose }: { medication: Medic
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <NextDose medication={medication} onUpdateDose={onUpdateDose} />
+        <NextDose 
+          doses={optimisticDoses} 
+          medicationId={medication.id} 
+          onDoseChange={handleDoseChange} 
+        />
         <Accordion type="single" collapsible>
           <AccordionItem value="schedule">
             <AccordionTrigger className="text-base font-semibold">
               Ver Horario Completo
             </AccordionTrigger>
             <AccordionContent>
-              <DosageSchedule medication={medication} onUpdateDose={onUpdateDose} />
+              <DosageSchedule 
+                doses={optimisticDoses} 
+                medicationId={medication.id} 
+                onDoseChange={handleDoseChange}
+              />
             </AccordionContent>
           </AccordionItem>
         </Accordion>
