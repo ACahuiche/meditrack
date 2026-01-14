@@ -7,7 +7,7 @@ import { Header } from '@/components/header';
 import { MedicationList } from '@/components/medication-list';
 import type { Medication, Dose, HistoricalMedication } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import { addDays, addHours } from 'date-fns';
+import { addHours } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HistoricalMedicationList } from '@/components/historical-medication-list';
 import { useAuth, useFirebase } from '@/firebase/provider';
@@ -159,6 +159,9 @@ export default function Home() {
     const medDocRef = doc(firestore, 'users', user.uid, 'medications', medicationId);
 
     if (isComplete) {
+       const lastDose = medication.doses[medication.doses.length - 1];
+       const endDate = lastDose ? lastDose.time : formatDateToLocalISO(new Date());
+
        const historicalEntry: Omit<HistoricalMedication, 'id'> = {
         userId: user.uid,
         name: medication.name,
@@ -166,7 +169,7 @@ export default function Home() {
         dosageFrequencyHours: medication.dosageFrequencyHours,
         totalDoses: medication.doses.length,
         startDate: medication.initialDoseTimestamp,
-        endDate: formatDateToLocalISO(addDays(new Date(medication.initialDoseTimestamp), medication.durationDays > 0 ? medication.durationDays - 1 : 0)),
+        endDate: endDate,
         completedAt: formatDateToLocalISO(new Date())
       };
       
