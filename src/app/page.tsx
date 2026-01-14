@@ -166,7 +166,7 @@ export default function Home() {
         dosageFrequencyHours: medication.dosageFrequencyHours,
         totalDoses: medication.doses.length,
         startDate: medication.initialDoseTimestamp,
-        endDate: formatDateToLocalISO(addDays(new Date(medication.initialDoseTimestamp), medication.durationDays)),
+        endDate: formatDateToLocalISO(addDays(new Date(medication.initialDoseTimestamp), medication.durationDays > 0 ? medication.durationDays - 1 : 0)),
         completedAt: formatDateToLocalISO(new Date())
       };
       
